@@ -7,15 +7,10 @@ int main() {
     // TODO: separar o x em dados de treino e teste
 
     // Cria MLP network
-    int input_size = 120;
-    int output_size = 10;
-    int hidden_size = 103;
-    int hidden_layers = 1;
-    auto mlp = MultiLayerPerceptronNetwork(input_size, output_size, hidden_size,
-                                           hidden_layers);
+    auto mlp = MLPNetwork(120, 10, std::vector<int>(1, 100));
 
     // TODO: incluir o dados de treinamento
-    mlp.train();
+    // mlp.train();
     // TODO: mostrar resultados do treinamento
 
     // TODO: realizar o teste
