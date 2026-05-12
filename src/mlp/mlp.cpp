@@ -3,10 +3,6 @@
 #include <assert.h>
 #include <math.h>
 
-// train() treina a rede MLP usando o algoritmo de backpropagation +
-// gradiente descendente
-void MultiLayerPerceptronNetwork::train() {}
-
 // multiplicaVetorMatrix recebe um vetor e uma matriz, multiplica ambos e
 // retorna um vetor de tamanho igual ao número de linhas da matriz
 static std::vector<float>
@@ -42,13 +38,13 @@ static std::vector<float> somaVetores(std::vector<float> &a,
 // vetor correspondente
 std::vector<float>
 MultiLayerPerceptronNetwork::predict(std::vector<float> &data) {
-    assert(static_cast<int>(data.size()) == input_size);
+    assert(static_cast<int>(data.size()) == get_input_size());
 
     auto ativacao =
         std::vector<float>(data.begin(), data.end()); // copia o input
 
     // para cada camada
-    for (int camada = 0; camada < this->hidden_layers; camada++) {
+    for (int camada = 0; camada < get_hidden_layer_size(); camada++) {
 
         auto pesos = this->weights[camada];
         auto bias = this->biases[camada];
@@ -59,7 +55,7 @@ MultiLayerPerceptronNetwork::predict(std::vector<float> &data) {
 
         // aplicar a função de ativação
         // passar para a próxima camada
-        ativacao = this->activationFunction(z);
+        ativacao = activationFunction(z);
     }
 
     return ativacao;
@@ -72,11 +68,11 @@ std::vector<float>
 MultiLayerPerceptronNetwork::activationFunction(std::vector<float> &z) {
     auto result = std::vector<float>(z.size());
     for (size_t i = 0; i < z.size(); i++) {
-        switch (this->activation_function) {
-        case ActivationFunction::ReLu:
+        switch (this->activation_function_type) {
+        case ActivationFunctionType::ReLu:
             result[i] = std::max(0.0f, z[i]);
             break;
-        case ActivationFunction::Sigmoid:
+        case ActivationFunctionType::Sigmoid:
             result[i] = 1.0f / (1.0f + std::exp(-z[i]));
             break;
         default:
