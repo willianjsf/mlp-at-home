@@ -93,10 +93,10 @@ MLPNetwork::forwardPropagation(const std::vector<float> &input) {
     std::vector<float> activation(input.begin(), input.end());
 
     for (auto &layer : layers) {
-        auto next_activation = std::vector<float>(layer.biases.size());
+        auto next_activation = std::vector<float>(layer.biases.size(), 0.0f);
 
-        for (int neuron = 0; layer.biases.size(); neuron++) {
-            auto z = layer.biases[neuron];
+        for (size_t neuron = 0; neuron < layer.biases.size(); neuron++) {
+            auto &z = layer.biases[neuron];
 
             for (size_t input = 0; input < activation.size(); input++) {
                 z += layer.weights[neuron][input] * activation[input];
@@ -120,9 +120,9 @@ void MLPNetwork::backwardPropagation(
     auto output = forwardPropagation(input);
 
     // deltas do layer de saída
-    auto output_layer = layers.back();
+    auto &output_layer = layers.back();
     auto output_layer_id = layers.size() - 1;
-    for (size_t neuron = 0; neuron < output_layer.deltas.size() - 1; neuron++) {
+    for (size_t neuron = 0; neuron < output_layer.deltas.size(); neuron++) {
         auto prediction = output[neuron];
         auto target = expected_output[neuron];
         auto activation_func_deriv = activation_function_derivative(prediction);
@@ -133,30 +133,25 @@ void MLPNetwork::backwardPropagation(
 
     // Camada escondida
     for (int i = output_layer_id - 1; i >= 0; i--) {
-        auto layer = layers[i];
-        auto next_layer = layers[i + 1];
+        auto &layer = layers[i];
+        auto &next_layer = layers[i + 1];
 
-        if (i == 0) {
-            auto previous_activation = input;
-        } else {
-            auto previous_activation = layers[i - 1].activations;
-        }
-
-        for (float neuron : layer.deltas) {
-            auto activation_func_deriv = activation_function_derivative(neuron);
+        for (size_t neuron = 0; neuron < layer.deltas.size(); neuron++) {
+            auto activation_func_deriv =
+                activation_function_derivative(layer.activations[neuron]);
             float sum_delta_weights = .0;
             for (size_t next_neuron = 0; next_neuron < next_layer.deltas.size();
                  next_neuron++) {
                 sum_delta_weights += next_layer.deltas[next_neuron] *
-                                     next_layer.weights[neuron][next_neuron];
+                                     next_layer.weights[next_neuron][neuron];
             }
             layer.deltas[neuron] = activation_func_deriv * sum_delta_weights;
         }
     }
 
     // Calcular gradientes
-    for (size_t i = 0; i < layers.size() - 1; i++) {
-        auto layer = layers[i];
+    for (size_t i = 0; i < layers.size(); i++) {
+        auto &layer = layers[i];
 
         std::vector<float> layer_input;
         if (i == 0) {
@@ -180,11 +175,11 @@ void MLPNetwork::backwardPropagation(
 
 void MLPNetwork::updateWeightsAndBiases(float learning_rate) {
     // Para cada camada da rede
-    for (size_t i = 0; i < layers.size() - 1; i++) {
-        auto layer = layers[i];
+    for (size_t i = 0; i < layers.size(); i++) {
+        auto &layer = layers[i];
 
         // atualiza os pesos
-        for (size_t neuron = 0; neuron < layer.weights.size() - 1; neuron++) {
+        for (size_t neuron = 0; neuron < layer.weights.size(); neuron++) {
             for (size_t input = 0; input < layer.weights[neuron].size();
                  input++) {
                 auto gradient = layer.weight_gradients[neuron][input];
