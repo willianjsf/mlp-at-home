@@ -34,8 +34,8 @@ int main() {
 
     // Hiperparâmetros
     std::vector<int> hidden_sizes = {60};
-    int epocas = 100;
-    float threshold = 0.01f;
+    int epocas = 200;
+    float threshold = 0.005f;
     float learning_rate = 0.001f;
 
     auto mlp = MLPNetwork(input_size, output_size, hidden_sizes,
