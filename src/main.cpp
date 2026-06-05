@@ -41,7 +41,7 @@ int main() {
 
     // cria rede neural
     auto mlp = MLPNetwork(input_size, output_size, hidden_sizes,
-                          ActivationFunctionType::Sigmoid);
+                          ActivationFunctionType::SigmoidStandard);
 
     // Exporta os valores iniciais
     const std::string output_dir = "results";
