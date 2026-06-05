@@ -1,9 +1,28 @@
+"""
+plot_matriz_f1.py
+--------------------
+Gera a matriz de confusão e calcula o F1-Score para as previsões do modelo MLP.
+
+Como usar:
+1. Baixe dependências: pip3 install numpy pandas matplotlib --break-system-packages
+2. Execute dentro da pasta src/plotting/: python3 plot_matriz_f1.py
+
+"""
+
 import os
 import string
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+# Caminhos relativos à raiz do projeto.
+# Como este script fica em src/plotting/, sobe dois níveis para chegar à raiz.
+SCRIPT_DIR  = Path(__file__).parent          # src/plotting/
+ROOT        = SCRIPT_DIR.parent.parent       # raiz do projeto
+RESULTS_DIR = ROOT / "results"               # results/
+GRAFICOS_DIR = ROOT / "graficos"             # graficos/
 
 
 def calcular_matriz_confusao(y_real, y_predito, num_classes):
@@ -49,8 +68,8 @@ def plotar_matriz_confusao(matriz, num_classes, labels):
                 )
 
     fig.tight_layout()
-    os.makedirs("graficos", exist_ok=True)
-    caminho = os.path.join("graficos", "grafico_6_matriz_confusao.png")
+    os.makedirs(GRAFICOS_DIR, exist_ok=True)
+    caminho = GRAFICOS_DIR / "grafico_6_matriz_confusao.png"
     plt.savefig(caminho, dpi=150, bbox_inches="tight")
     print(f"  → Matriz de Confusão salva em: {caminho}")
     plt.close()
@@ -96,7 +115,7 @@ def calcular_macro_f1(matriz_confusao):
 
 
 if __name__ == "__main__":
-    arquivo_teste = "predicoes_teste.csv"
+    arquivo_teste = RESULTS_DIR / "predicoes_teste.csv"
 
     if os.path.exists(arquivo_teste):
         df = pd.read_csv(arquivo_teste)

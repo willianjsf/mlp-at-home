@@ -6,9 +6,9 @@ Gera todos os gráficos de análise de hiperparâmetros da rede MLP.
 Como usar:
 1. Coloque este arquivo na raiz do projeto (mesma pasta dos CSVs).
 2. Preencha o dicionário ACURACIAS abaixo com os valores do terminal.
-3. Execute: python3 plot.py
+2. Baixe dependências: pip3 install numpy pandas matplotlib --break-system-packages
+3. Execute dentro da pasta src/plotting/: python3 plot.py
 
-Dependências: pip3 install pandas matplotlib --break-system-packages
 """
 
 import os
@@ -17,10 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import pandas as pd
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PREENCHA AQUI com os valores anotados do terminal após cada experimento
-# Deixe None nos experimentos que ainda não foram executados
-# ─────────────────────────────────────────────────────────────────────────────
+# Campo para colocar os valores anotados do terminal após cada experimento
+
 ACURACIAS = {
     1: 60.90,  # lr=0.0001, hidden={60}, epocas=200
     2: 90.60,  # lr=0.001,  hidden={60}, epocas=200  ← baseline (já feito)
@@ -34,6 +32,7 @@ ACURACIAS = {
 }
 
 # Descrição legível de cada experimento (para legendas e rótulos)
+
 DESCRICOES = {
     1: "lr=0.0001",
     2: "lr=0.001 (baseline)",
@@ -64,7 +63,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 # Funções auxiliares
-
 
 def carregar_csv(exp_id):
     """Carrega o CSV de erros de um experimento. Retorna None se não existir."""
