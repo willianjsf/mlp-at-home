@@ -75,7 +75,3 @@ Pelo código acima, o projeto está organizado da seguinte forma:
 Este projeto está sob a licença MIT. Saiba mais em [LICENSE](LICENSE).
 
 This file was made with [Make Your Reads](https://github.com/caio-bernardo/make-your-reads).
-
-```
-
-```
