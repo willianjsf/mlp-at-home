@@ -94,8 +94,10 @@ float MLPNetwork::trainForEpoch(const std::vector<TrainingData> &data,
                        std::vector<float>(layer.weights[0].size()));
             layer.bias_gradients = std::vector<float>(layer.biases.size());
         }
+        // realiza forward propagation
         auto output = forwardPropagation(sample.input);
 
+        // realiza backward propagation
         backwardPropagation(sample.input, target);
 
         // Erro (loss) acumulada
