@@ -1,0 +1,11 @@
+---- Hiperparametros de inicializacao ----
+Tamanho da entrada     : 120
+Tamanho da saida       : 26
+Camadas escondidas     : [60]
+Epocas maximas         : 200
+Threshold     : 0.00500000
+Taxa de aprendizado    : 0.00100000
+
+---- Resultados finais ----
+Epocas executadas      : 200
+Erro final (MSE medio) : 0.00637551
