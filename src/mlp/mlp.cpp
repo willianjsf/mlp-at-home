@@ -1,5 +1,6 @@
 #include "./mlp.hpp"
 #include <assert.h>
+#include <cmath>
 #include <iostream>
 #include <math.h>
 #include <random>
@@ -257,10 +258,12 @@ float MLPNetwork::activation_function(float z) {
     switch (activation_type) {
     case ActivationFunctionType::ReLu:
         return std::max(0.0f, z);
-    case ActivationFunctionType::Sigmoid:
+    case ActivationFunctionType::SigmoidStandard:
         // Sigmoid um pouco alterada para deixar o resultado entre -1 e 1, como
         // nos dados do dataset
         return (2.0f / (1.0f + std::exp(-z))) - 1.0f;
+    case ActivationFunctionType::SigmoidBipolar:
+        return tanh(z);
     default:
         return z;
     }
@@ -271,8 +274,10 @@ float MLPNetwork::activation_function_derivative(float z) {
     switch (activation_type) {
     case ActivationFunctionType::ReLu:
         return z > 0.0f ? 1.0f : 0.0f;
-    case ActivationFunctionType::Sigmoid:
+    case ActivationFunctionType::SigmoidStandard:
         return 0.5f * (1.0f - z * z);
+    case ActivationFunctionType::SigmoidBipolar:
+        return 1.0f - z * z;
     default:
         return 1.0f;
     }

@@ -8,4 +8,4 @@ Taxa de aprendizado    : 0.00100000
 
 ---- Resultados finais ----
 Epocas executadas      : 200
-Erro final (MSE medio) : 0.00637551
+Erro final (MSE medio) : 0.00637753
