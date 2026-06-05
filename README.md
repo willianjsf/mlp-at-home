@@ -14,6 +14,7 @@ Implementação de uma Rede Neural **MultiLayer Perceptron** utilizando o algori
 
 - Zig +0.14
 - C++ 17+
+- Python 3.14+
 
 ## Instalação
 
@@ -40,6 +41,33 @@ Para compilar e executar este projeto é necessário ter o compilador Zig (veja 
 1. `zig build`. Para compilar o projeto em `zig-out/bin`; e
 2. `zig build run`. Para executar o projeto.
 
+## Visualização de Dados
+
+Você pode visualizar os dados produzidos pela rede na pasta `graficos`, essas imagens foram geradas com o uso dos scripts na pasta `src/plotting`. É preciso instalar as dependências (`matplotlib`, `numpy` e `pandas`) antes de rodar os scripts. Caso você tenha o gerenciador [uv](https://docs.astral.sh/uv) instalado. Você pode rodar os scripts apenas com `uv run <local/nome.py>`.
+
+## Organização do Projeto
+
+```sh
+src
+├── io
+│   ├── dataIO.cpp
+│   └── dataIO.hpp
+├── mlp
+│   ├── mlp.cpp
+│   └── mlp.hpp
+├── plotting
+│   ├── plot_matriz_f1.py
+│   └── plot.py
+└── main.cpp
+```
+
+Pelo código acima, o projeto está organizado da seguinte forma:
+
+- **io**: módulo contendo funções de manipulação de arquivo (carregar dataset e exportar parâmetros).
+- **mlp**: módulo da rede neural, contém funções de treinamento e predição
+- **plotting**: scripts Python para gerar gráficos e visualizações.
+- **main.cpp**: ponto de entrada do programa, carrega dataset, realiza treinamento e testes de predição, exportando os resultados encontrados.
+
 <!-- ### Contributors -->
 
 ## License
@@ -47,3 +75,7 @@ Para compilar e executar este projeto é necessário ter o compilador Zig (veja 
 Este projeto está sob a licença MIT. Saiba mais em [LICENSE](LICENSE).
 
 This file was made with [Make Your Reads](https://github.com/caio-bernardo/make-your-reads).
+
+```
+
+```
