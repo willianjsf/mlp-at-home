@@ -6,6 +6,7 @@
 #include <iostream>
 #include <random>
 #include <sstream>
+#include <map>
 
 void ensureDir(const std::string &path) {
     std::filesystem::create_directories(path);
@@ -68,6 +69,7 @@ std::vector<TrainingData> loadData(const std::string &filename, int input_size,
     return dataset;
 }
 
+// divisão treino / teste (hold-out dois subconjuntos)
 void splitTrainTest(const std::vector<TrainingData> &full_data,
                     float train_ratio, std::vector<TrainingData> &train_data,
                     std::vector<TrainingData> &test_data) {
@@ -88,6 +90,148 @@ void splitTrainTest(const std::vector<TrainingData> &full_data,
               << "Teste: " << test_data.size() << " dados" << std::endl;
 }
 
+// Divisão treino / validação / teste (hold-out três subconjuntos)
+// O dataset é embaralhado antes da divisão
+// As proporções somam 1.0: train_ratio + val_ratio + (1 - ambos) = teste.
+void splitTrainValTest(const std::vector<TrainingData> &full_data,
+                       float train_ratio, float val_ratio,
+                        std::vector<TrainingData> &train_data,
+                        std::vector<TrainingData> &val_data,
+                         std::vector<TrainingData> &test_data) {
+ 
+    std::vector<TrainingData> shuffled = full_data;
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(shuffled.begin(), shuffled.end(), g);
+ 
+    size_t n = shuffled.size();
+    size_t train_size = static_cast<size_t>(n * train_ratio);
+    size_t val_size = static_cast<size_t>(n * val_ratio);
+ 
+    train_data.assign(shuffled.begin(), shuffled.begin() + train_size);
+    val_data.assign (shuffled.begin() + train_size, shuffled.begin() + train_size + val_size);
+    test_data.assign (shuffled.begin() + train_size + val_size, shuffled.end());
+ 
+    std::cout << "Treino    : " << train_data.size() << " dados ("
+              << (int)(train_ratio * 100) << "%)\n"
+              << "Validacao : " << val_data.size()   << " dados ("
+              << (int)(val_ratio   * 100) << "%)\n"
+              << "Teste     : " << test_data.size()  << " dados ("
+              << (int)((1.0f - train_ratio - val_ratio) * 100) << "%)"
+              << std::endl;
+}
+
+void splitTrainValTestStratified(const std::vector<TrainingData> &full_data,
+                                  float train_ratio, float val_ratio,
+                                  std::vector<TrainingData> &train_data,
+                                  std::vector<TrainingData> &val_data,
+                                  std::vector<TrainingData> &test_data) {
+ 
+    // Agrupa as amostras pela posição do maior valor no vetor de saída (índice da letra)
+    std::map<int, std::vector<TrainingData>> class_map;
+    for (const auto &sample : full_data) {
+        int class_idx = 0;
+        float max_val = sample.output[0];
+        for (int i = 1; i < (int)sample.output.size(); i++) {
+            if (sample.output[i] > max_val) {
+                max_val   = sample.output[i];
+                class_idx = i;
+            }
+        }
+        class_map[class_idx].push_back(sample);
+    }
+ 
+    std::random_device rd;
+    std::mt19937 g(rd());
+ 
+    // Para cada classe: embaralha e divide proporcionalmente
+    for (auto &[class_idx, samples] : class_map) {
+        std::shuffle(samples.begin(), samples.end(), g);
+ 
+        size_t n          = samples.size();
+        size_t train_size = static_cast<size_t>(n * train_ratio);
+        size_t val_size   = static_cast<size_t>(n * val_ratio);
+        // test_size = n - train_size - val_size
+        // (usa o resto exato para não perder nenhuma amostra por arredondamento)
+ 
+        train_data.insert(train_data.end(),
+                          samples.begin(),
+                          samples.begin() + train_size);
+        val_data.insert(val_data.end(),
+                        samples.begin() + train_size,
+                        samples.begin() + train_size + val_size);
+        test_data.insert(test_data.end(),
+                         samples.begin() + train_size + val_size,
+                         samples.end());
+    }
+ 
+    // Re-embaralha cada subconjunto para misturar as classes entre si
+    std::shuffle(train_data.begin(), train_data.end(), g);
+    std::shuffle(val_data.begin(),   val_data.end(),   g);
+    std::shuffle(test_data.begin(),  test_data.end(),  g);
+ 
+    std::cout << "Treino    : " << train_data.size() << " dados ("
+              << (int)(train_ratio * 100) << "%)\n"
+              << "Validacao : " << val_data.size()   << " dados ("
+              << (int)(val_ratio   * 100) << "%)\n"
+              << "Teste     : " << test_data.size()  << " dados ("
+              << (int)((1.0f - train_ratio - val_ratio) * 100) << "%)"
+              << std::endl;
+}
+
+void addNoise(std::vector<TrainingData> &data, float noise_ratio,
+              unsigned int seed) {
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> prob(0.0f, 1.0f);
+
+    for (auto &sample : data) {
+        // Itera sobre cada pixel da entrada (valores -1 ou 1)
+        for (auto &pixel : sample.input) {
+            // Com probabilidade noise_ratio, inverte o pixel
+            if (prob(gen) < noise_ratio)
+                pixel *= -1.0f;
+        }
+        // sample.output (rótulo) NÃO é alterado — só o input recebe ruído
+    }
+}
+
+void splitTrainValTestOrdered(const std::vector<TrainingData> &full_data,
+                              float train_ratio, float val_ratio,
+                              std::vector<TrainingData> &train_data,
+                              std::vector<TrainingData> &val_data,
+                              std::vector<TrainingData> &test_data) {
+    // Sem shuffle: mantém ordem original do arquivo (A, A, ..., B, B, ..., Z)
+    size_t n          = full_data.size();
+    size_t train_size = static_cast<size_t>(n * train_ratio);
+    size_t val_size   = static_cast<size_t>(n * val_ratio);
+
+    train_data.assign(full_data.begin(),
+                      full_data.begin() + train_size);
+    val_data.assign  (full_data.begin() + train_size,
+                      full_data.begin() + train_size + val_size);
+    test_data.assign (full_data.begin() + train_size + val_size,
+                      full_data.end());
+
+    std::cout << "[SEM EMBARALHAMENTO]\n"
+              << "Treino    : " << train_data.size() << " amostras\n"
+              << "Validacao : " << val_data.size()   << " amostras\n"
+              << "Teste     : " << test_data.size()
+              << " amostras (ultimas letras do alfabeto)\n";
+}
+
+void mergeClasses(std::vector<TrainingData> &data, char from_class, char to_class) {
+    int from_idx = from_class - 'A';
+    int to_idx   = to_class   - 'A';
+    for (auto &sample : data) {
+        // Se esta amostra tem 'from_class' como alvo, remapeia para 'to_class'
+        if (sample.output[from_idx] == 1.0f) {
+            sample.output[from_idx] = -1.0f; // remove O como alvo
+            sample.output[to_idx]   =  1.0f; // define D como alvo
+        }
+    }
+}
+
+// Carregamento do dataset de Caracteres (arquivos X e Y separados)
 std::vector<TrainingData> loadCharacterData(const std::string &x_filename,
                                             const std::string &y_filename) {
     std::vector<TrainingData> dataset;
@@ -159,6 +303,7 @@ void exportHyperparameters(const std::string &filename,
                            int input_size, int output_size,
                            const std::vector<int> &hidden_sizes,
                            int epocas, float threshold, float learning_rate,
+                           float val_ratio, int patience,
                            int epocas_executadas, float erro_final) {
     std::ofstream f(filename);
     if (!f.is_open()) {
@@ -177,8 +322,10 @@ void exportHyperparameters(const std::string &filename,
     }
     f << "]" << std::endl;
     f << "Epocas maximas         : " << epocas << std::endl;
-    f << "Threshold     : " << threshold << std::endl;
+    f << "Threshold              : " << threshold << std::endl;
     f << "Taxa de aprendizado    : " << learning_rate << std::endl;
+    f << "Proporcao de validacao : " << val_ratio << std::endl;
+    f << "Paciencia (patience)   : " << patience << std::endl;
 
     f << std::endl;
     f << "---- Resultados finais ----" << std::endl;
@@ -221,8 +368,9 @@ void exportWeights(const std::string &filename, const WeightSnapshot &snap,
     std::cout << "Arquivo com Pesos (" << label << "): " << filename << std::endl;
 }
 
+// Versão com apenas o erro de treino (uma coluna)
 void exportEpochErrors(const std::string &filename,
-                       const std::vector<float> &epoch_losses) {
+                       const std::vector<float> &train_losses) {
     std::ofstream f(filename);
     if (!f.is_open()) {
         std::cerr << "Erro ao criar arquivo: " << filename << std::endl;
@@ -230,12 +378,33 @@ void exportEpochErrors(const std::string &filename,
     }
 
     f << std::fixed << std::setprecision(8);
-    f << "epoca,erro_medio_mse" << std::endl;
-    for (size_t i = 0; i < epoch_losses.size(); i++) {
-        f << (i + 1) << "," << epoch_losses[i] << "\n";
+    f << "epoca,erro_treino_mse" << std::endl;
+    for (size_t i = 0; i < train_losses.size(); i++) {
+        f << (i + 1) << "," << train_losses[i] << "\n";
     }
 
     std::cout << "Arquivo com Erros por epoca : " << filename << std::endl;
+}
+
+// Versão com erro de treino e validação (duas colunas) para plotar as duas curvas
+void exportEpochErrors(const std::string &filename,
+                       const std::vector<float> &train_losses,
+                       const std::vector<float> &val_losses) {
+
+    std::ofstream f(filename);
+    if (!f.is_open()) {
+        std::cerr << "Erro ao criar arquivo: " << filename << std::endl;
+        return;
+    }
+ 
+    f << std::fixed << std::setprecision(8);
+    f << "epoca,erro_treino_mse,erro_val_mse\n";
+    for (size_t i = 0; i < train_losses.size(); i++) {
+        float val = (i < val_losses.size()) ? val_losses[i] : 0.0f;
+        f << (i + 1) << "," << train_losses[i] << "," << val << "\n";
+    }
+ 
+    std::cout << "Arquivo com Erros por epoca (treino + val): " << filename << std::endl;
 }
 
 void exportTestPredictions(const std::string &filename,

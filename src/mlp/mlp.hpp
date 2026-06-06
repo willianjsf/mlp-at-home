@@ -42,6 +42,13 @@ struct WeightSnapshot {
     std::vector<std::vector<float>> biases;
 };
 
+// TrainResult encapsula os resultados de uma execução de treinamento:
+// os erros MSE por época tanto no conjunto de treino quanto no de validação
+struct TrainResult {
+    std::vector<float> train_losses; // MSE médio por época no conjunto de treino
+    std::vector<float> val_losses;   // MSE médio por época no conjunto de validação
+};
+
 // MultiLayerPerceptronNetwork é uma implementação autoral de uma rede neural
 // MLP
 class MLPNetwork {
@@ -85,8 +92,16 @@ class MLPNetwork {
     // predict realiza a predição da rede para um dado de entrada
     std::vector<float> predict(const std::vector<float> &input);
 
-    std::vector<float> train(const std::vector<TrainingData> &data, int epoches,
-                             float threshold, float learningRate);
+    // computeLoss calcula o MSE médio de um conjunto sem atualizar os pesos
+    // é usado para avaliar o erro no conjunto de validação a cada época
+    float computeLoss(const std::vector<TrainingData> &data);
+
+    // train executa o treinamento completo com parada antecipada (early stopping)
+    // retorna um TrainResult com os vetores de erro por época (treino e validação)
+    TrainResult train(const std::vector<TrainingData> &train_data,
+                      const std::vector<TrainingData> &val_data,
+                      int epochs, float threshold, float learning_rate,
+                      int patience = 10);
 
     const WeightSnapshot &getInitialWeights() const;
 

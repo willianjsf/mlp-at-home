@@ -3,6 +3,7 @@
 #include <iostream>
 #include <math.h>
 #include <random>
+#include <limits>
 
 // Construtor de Camada
 Layer::Layer(int num_neurons, int num_inputs) {
@@ -47,7 +48,7 @@ MLPNetwork::MLPNetwork(int input_size, int output_size,
     initial_weights = captureWeights();
 }
 
-// Pega os pesos atuais
+// Pega os pesos e biases atuais
 WeightSnapshot MLPNetwork::captureWeights() const {
     WeightSnapshot snap;
     for (const auto &layer : layers) {
@@ -104,8 +105,7 @@ float MLPNetwork::trainForEpoch(const std::vector<TrainingData> &data,
         backwardPropagation(sample.input, target);
 
         // Acumulate loss
-        auto loss = MSE(output, target);
-        total_loss += loss;
+        total_loss += MSE(output, target);
 
         // Update weights
         updateWeightsAndBiases(learningRate);
@@ -218,34 +218,80 @@ void MLPNetwork::updateWeightsAndBiases(float learning_rate) {
     }
 }
 
-// Retorna os erros médios por epoch
-std::vector<float> MLPNetwork::train(const std::vector<TrainingData> &data,
-                                     int epoches, float threshold,
-                                     float learning_rate) {
-    std::vector<float> epoch_losses;
-    epoch_losses.reserve(epoches);
+// Usado a cada época para calcular o erro de validação
+// Realiza apenas o forward pass para cada amostra (sem backpropagation)
+float MLPNetwork::computeLoss(const std::vector<TrainingData> &data) {
+    float total_loss = 0.0f;
+    for (const auto &sample : data) {
+        auto output = forwardPropagation(sample.input);
+        total_loss += MSE(output, sample.output);
+    }
+    return total_loss / (float)data.size();
+}
+
+// treinamento com Early Stopping baseado no erro de validação
+// Retorna TrainResult com vetores de train_losses e val_losses por época
+TrainResult MLPNetwork::train(const std::vector<TrainingData> &train_data,
+                               const std::vector<TrainingData> &val_data,
+                               int epochs, float threshold, float learning_rate,
+                               int patience) {
+    TrainResult result;
+    result.train_losses.reserve(epochs);
+    result.val_losses.reserve(epochs);
+    
+    float best_val_loss      = std::numeric_limits<float>::infinity();
+    int   patience_counter   = 0;
+    WeightSnapshot best_weights = captureWeights(); // começa com os pesos atuais
 
     // para cada época
-    for (int epoch = 0; epoch < epoches; epoch++) {
+    for (int epoch = 0; epoch < epochs; epoch++) {
         // executa um treinamento
-        float average_loss = trainForEpoch(data, learning_rate);
-        epoch_losses.push_back(average_loss);
+        float train_loss = trainForEpoch(train_data, learning_rate);
+        result.train_losses.push_back(train_loss);
 
-        std::cout << "Epoca " << epoch + 1 << "/" << epoches
-                  << " | Loss (Erro): " << average_loss << std::endl;
+        // calcula o erro de validação
+        float val_loss = computeLoss(val_data);
+        result.val_losses.push_back(val_loss);
 
-        if (average_loss < threshold) {
-            std::cout
-                << "Treinamento encerrado: erro ficou abaixo do threshold!"
-                << std::endl;
+        std::cout << "Epoca " << epoch + 1 << "/" << epochs
+                  << " | Treino (MSE): " << train_loss
+                  << " | Validacao (MSE): " << val_loss
+                  << std::endl;
 
-            // se a taxa de perda for menor que o threshold podemos parar a
-            // simulação
+        // verifica melhoria no erro de validação (early stopping)
+        if (val_loss < best_val_loss) {
+            // se houve melhoria: salva os melhores pesos e reseta a paciência
+            best_val_loss    = val_loss;
+            patience_counter = 0;
+            best_weights     = captureWeights();
+        } else {
+            // sem melhoria: incrementa o contador de paciência
+            patience_counter++;
+ 
+            if (patience_counter >= patience) {
+                // Parada antecipada ativada, restaura os pesos do melhor momento
+                std::cout << "Parada antecipada: val_loss nao melhorou por "
+                          << patience << " epocas consecutivas.\n"
+                          << "Restaurando pesos do melhor momento "
+                          << "(val_loss = " << best_val_loss << ")." << std::endl;
+ 
+                for (size_t i = 0; i < layers.size(); i++) {
+                    layers[i].weights = best_weights.weights[i];
+                    layers[i].biases  = best_weights.biases[i];
+                }
+                break;
+            }
+        }
+ 
+        // parada por threshold no erro de treino (critério secundário)
+        if (train_loss < threshold) {
+            std::cout << "Treinamento encerrado: erro de treino abaixo do threshold ("
+                      << threshold << ")." << std::endl;
             break;
         }
     }
-
-    return epoch_losses;
+ 
+    return result;
 }
 
 std::vector<float> MLPNetwork::predict(const std::vector<float> &input) {

@@ -1,6 +1,7 @@
 #include "io/dataIO.hpp"
 #include "mlp/mlp.hpp"
 #include <iostream>
+#include <chrono>
 
 // Função auxiliar para achar qual posição do vetor tem o maior valor
 char getPredictedLetter(const std::vector<float> &output) {
@@ -28,16 +29,38 @@ int main() {
         return 1;
     }
 
-    // 85% treino, 15% teste
-    std::vector<TrainingData> train_data, test_data;
-    splitTrainTest(full_dataset, 0.85f, train_data, test_data);
+    // Divisão hold-out em três subconjuntos: treino / validação / teste
+    // 80% treino, 10% validação, 10% teste
+    const float train_ratio = 0.80f;
+    const float val_ratio   = 0.10f;
+    
+    
+    std::vector<TrainingData> train_data, val_data, test_data;
+
+    // splitTrainValTest(full_dataset, train_ratio, val_ratio, train_data, val_data, test_data);
+
+    splitTrainValTestStratified(full_dataset, train_ratio, val_ratio, train_data, val_data, test_data);
 
     // Hiperparâmetros
-    std::vector<int> hidden_sizes = {60};
-    int epocas = 200;
-    float threshold = 0.005f;
-    float learning_rate = 0.001f;
+    std::vector<int> hidden_sizes = {60};  // neurônios na camada escondida
+    int epocas = 200;               // número máximo de épocas
+    float threshold = 0.0005f;       // limiar de convergência do erro de treino
+    float learning_rate = 0.001;    // taxa de aprendizado
+    int patience = 15;             // épocas sem melhoria no val_loss antes do early stopping
+    
+    std::cout << "\n--- Configuracao ---\n";
+    std::cout << "learning_rate : " << learning_rate << "\n";
+    std::cout << "hidden_sizes  : [";
+    for (size_t i = 0; i < hidden_sizes.size(); ++i) {
+        std::cout << hidden_sizes[i];
+        if (i < hidden_sizes.size() - 1) std::cout << ", ";
+    }
+    std::cout << "]\n";
+    std::cout << "epocas        : " << epocas    << "\n";
+    std::cout << "patience      : " << patience  << "\n";
+    std::cout << "threshold     : " << threshold << "\n\n";
 
+    // Construção da rede MLP e exportação dos pesos iniciais
     auto mlp = MLPNetwork(input_size, output_size, hidden_sizes,
                           ActivationFunctionType::Sigmoid);
 
@@ -45,10 +68,26 @@ int main() {
     ensureDir(output_dir);
 
     exportWeights(output_dir + "/pesos_iniciais.csv", mlp.getInitialWeights(), "Pesos Iniciais");
-
+    
+    // Treinamento com early stopping baseado no erro de validação
     std::cout << "\nFazendo o treinamento..." << std::endl;
 
-    auto epoch_losses = mlp.train(train_data, epocas, threshold, learning_rate);
+    auto t_inicio = std::chrono::high_resolution_clock::now();
+    
+    // Variações autorais (descomente para testar):
+    // addNoise(train_data, 0.1f, 123);
+    // addNoise(train_data, 0.2f, 123);
+    // mergeClasses(full_dataset, 'O', 'D'); // trata O como D
+    // mergeClasses(full_dataset, 'I', 'J'); // trata I como J
+
+    TrainResult result = mlp.train(train_data, val_data,
+                                   epocas, threshold, learning_rate, patience);
+
+    auto t_fim = std::chrono::high_resolution_clock::now();
+    auto tempo_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_fim - t_inicio).count();
+    std::cout << "\nTempo de treinamento: " << tempo_ms / 1000.0 << "s\n";
+
+    // Avaliação no conjunto de teste
 
     std::cout << "\nResultados das previsões (10 primeiras):" << std::endl;
     int acertos = 0;
@@ -80,15 +119,16 @@ int main() {
               << std::endl;
     std::cout << "Acuracia: " << acuracia << "%" << std::endl;
 
-    float erro_final = epoch_losses.empty() ? 0.0f : epoch_losses.back();
+    float erro_final_treino = result.train_losses.empty() ? 0.0f : result.train_losses.back();
     exportHyperparameters(
         output_dir + "/hiperparametros.txt",
         input_size, output_size, hidden_sizes,
         epocas, threshold, learning_rate,
-        (int)epoch_losses.size(), erro_final);
+        val_ratio, patience,
+        (int)result.train_losses.size(), erro_final_treino);
 
     exportWeights(output_dir + "/pesos_finais.csv", mlp.getFinalWeights(), "Pesos Finais");
-    exportEpochErrors(output_dir + "/erros_por_epoca.csv", epoch_losses);
+    exportEpochErrors(output_dir + "/erros_por_epoca.csv", result.train_losses, result.val_losses);
     exportTestPredictions(output_dir + "/predicoes_teste.csv", test_data, predictions);
     std::cout << "\nDados exportados com sucesso!" << std::endl;
 
