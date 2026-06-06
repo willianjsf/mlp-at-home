@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#     "matplotlib>=3.10.9",
+#     "pandas>=3.0.3",
+# ]
+# ///
+
 """
 plot.py — Gera todos os gráficos de análise de hiperparâmetros da rede MLP.
 

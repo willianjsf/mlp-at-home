@@ -9,11 +9,13 @@
 #include <map>
 
 void ensureDir(const std::string &path) {
+    // Se o diretório não existe cria-o, senão faz nada
     std::filesystem::create_directories(path);
 }
 
 std::vector<TrainingData> loadData(const std::string &filename, int input_size,
                                    int output_size) {
+    // Carrega o dataset
     std::vector<TrainingData> dataset;
     std::ifstream file(filename);
     std::string line;
@@ -73,17 +75,21 @@ std::vector<TrainingData> loadData(const std::string &filename, int input_size,
 void splitTrainTest(const std::vector<TrainingData> &full_data,
                     float train_ratio, std::vector<TrainingData> &train_data,
                     std::vector<TrainingData> &test_data) {
-
+    // Divide os dados em treino e teste usando o algoritmo randomico do c++
     std::vector<TrainingData> shuffled_data = full_data;
 
     std::random_device rd;
     std::mt19937 g(rd());
+    // embaralha os dados
     std::shuffle(shuffled_data.begin(), shuffled_data.end(), g);
 
+    // define tamanho do treino pelo ratio
     size_t train_size = static_cast<size_t>(shuffled_data.size() * train_ratio);
 
+    // copia uma parte dos dados para treino
     train_data.assign(shuffled_data.begin(),
                       shuffled_data.begin() + train_size);
+    // copia o restante para teste
     test_data.assign(shuffled_data.begin() + train_size, shuffled_data.end());
 
     std::cout << "Treino: " << train_data.size() << " dados\n"
@@ -299,18 +305,26 @@ std::vector<TrainingData> loadCharacterData(const std::string &x_filename,
     return dataset;
 }
 
+<<<<<<< HEAD
 void exportHyperparameters(const std::string &filename,
                            int input_size, int output_size,
                            const std::vector<int> &hidden_sizes,
                            int epocas, float threshold, float learning_rate,
                            float val_ratio, int patience,
+=======
+void exportHyperparameters(const std::string &filename, int input_size,
+                           int output_size,
+                           const std::vector<int> &hidden_sizes, int epocas,
+                           float threshold, float learning_rate,
+>>>>>>> 30ce82841efac84a69a79c1e9abf88365cffb2db
                            int epocas_executadas, float erro_final) {
+    // abre o arquivo de exportar
     std::ofstream f(filename);
     if (!f.is_open()) {
         std::cerr << "Erro ao criar arquivo: " << filename << std::endl;
         return;
     }
-
+    // escreve hiperparametros
     f << std::fixed << std::setprecision(8);
     f << "---- Hiperparametros de inicializacao ----" << std::endl;
     f << "Tamanho da entrada     : " << input_size << std::endl;
@@ -318,7 +332,8 @@ void exportHyperparameters(const std::string &filename,
     f << "Camadas escondidas     : [";
     for (size_t i = 0; i < hidden_sizes.size(); i++) {
         f << hidden_sizes[i];
-        if (i + 1 < hidden_sizes.size()) f << ", ";
+        if (i + 1 < hidden_sizes.size())
+            f << ", ";
     }
     f << "]" << std::endl;
     f << "Epocas maximas         : " << epocas << std::endl;
@@ -337,17 +352,20 @@ void exportHyperparameters(const std::string &filename,
 
 void exportWeights(const std::string &filename, const WeightSnapshot &snap,
                    const std::string &label) {
-    std::ofstream f(filename);
+    std::ofstream f(filename); // abre arquivo
     if (!f.is_open()) {
         std::cerr << "Erro ao criar arquivo: " << filename << std::endl;
         return;
     }
 
+    // Escreve pesos
     f << std::fixed << std::setprecision(8);
 
     f << "# " << label << std::endl;
-    f << "# Formato: layer_idx,tipo ,neuron_idx,valor_0,valor_1,..." << std::endl;
-    f << "# tipo=weight -> pesos de um neurônio (um valor por entrada)" << std::endl;
+    f << "# Formato: layer_idx,tipo ,neuron_idx,valor_0,valor_1,..."
+      << std::endl;
+    f << "# tipo=weight -> pesos de um neurônio (um valor por entrada)"
+      << std::endl;
     f << "# tipo=bias   -> bias de um neurônio (um unico valor)" << std::endl;
 
     for (size_t layer = 0; layer < snap.weights.size(); layer++) {
@@ -361,22 +379,30 @@ void exportWeights(const std::string &filename, const WeightSnapshot &snap,
         }
         // Biases
         for (size_t neuron = 0; neuron < snap.biases[layer].size(); neuron++) {
-            f << layer << ",bias," << neuron << "," << snap.biases[layer][neuron] << "\n";
+            f << layer << ",bias," << neuron << ","
+              << snap.biases[layer][neuron] << "\n";
         }
     }
 
-    std::cout << "Arquivo com Pesos (" << label << "): " << filename << std::endl;
+    std::cout << "Arquivo com Pesos (" << label << "): " << filename
+              << std::endl;
 }
 
 // Versão com apenas o erro de treino (uma coluna)
 void exportEpochErrors(const std::string &filename,
+<<<<<<< HEAD
                        const std::vector<float> &train_losses) {
     std::ofstream f(filename);
+=======
+                       const std::vector<float> &epoch_losses) {
+    std::ofstream f(filename); // abre arquivo
+>>>>>>> 30ce82841efac84a69a79c1e9abf88365cffb2db
     if (!f.is_open()) {
         std::cerr << "Erro ao criar arquivo: " << filename << std::endl;
         return;
     }
 
+    // exporta erros por epoca
     f << std::fixed << std::setprecision(8);
     f << "epoca,erro_treino_mse" << std::endl;
     for (size_t i = 0; i < train_losses.size(); i++) {
@@ -452,7 +478,8 @@ void exportTestPredictions(const std::string &filename,
         char predicted_letter = 'A' + predicted_idx;
         int acerto = (expected_letter == predicted_letter) ? 1 : 0;
 
-        f << i << "," << expected_letter << "," << predicted_letter << "," << acerto;
+        f << i << "," << expected_letter << "," << predicted_letter << ","
+          << acerto;
         for (int j = 0; j < 26; j++) {
             f << "," << predictions[i][j];
         }

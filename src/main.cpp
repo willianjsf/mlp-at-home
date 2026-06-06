@@ -1,13 +1,14 @@
 #include "io/dataIO.hpp"
 #include "mlp/mlp.hpp"
 #include <iostream>
+#include <sys/types.h>
 #include <chrono>
 
 // Função auxiliar para achar qual posição do vetor tem o maior valor
 char getPredictedLetter(const std::vector<float> &output) {
     int max_index = 0;
     float max_val = output[0];
-    for (int i = 1; i < 26; i++) {
+    for (size_t i = 1; i < output.size(); i++) {
         if (output[i] > max_val) {
             max_val = output[i];
             max_index = i;
@@ -17,8 +18,8 @@ char getPredictedLetter(const std::vector<float> &output) {
 }
 
 int main() {
-    int input_size = 120;
-    int output_size = 26;
+    int input_size = 120; // camada de entrada fotos (12x10)
+    int output_size = 26; // camada de saída (26 letras do alfabeto)
 
     std::cout << "Carregando o dataset de caracteres..." << std::endl;
     auto full_dataset = loadCharacterData("datasets/caracteres/X.txt",
@@ -62,14 +63,15 @@ int main() {
 
     // Construção da rede MLP e exportação dos pesos iniciais
     auto mlp = MLPNetwork(input_size, output_size, hidden_sizes,
-                          ActivationFunctionType::Sigmoid);
+                          ActivationFunctionType::SigmoidStandard);
 
+    // Exporta os valores iniciais
     const std::string output_dir = "results";
     ensureDir(output_dir);
+    exportWeights(output_dir + "/pesos_iniciais.csv", mlp.getInitialWeights(),
+                  "Pesos Iniciais");
 
-    exportWeights(output_dir + "/pesos_iniciais.csv", mlp.getInitialWeights(), "Pesos Iniciais");
-    
-    // Treinamento com early stopping baseado no erro de validação
+    // Fase de Treinamento
     std::cout << "\nFazendo o treinamento..." << std::endl;
 
     auto t_inicio = std::chrono::high_resolution_clock::now();
@@ -96,6 +98,7 @@ int main() {
     std::vector<std::vector<float>> predictions;
     predictions.reserve(test_data.size());
 
+    // Realiza testes de acerto do modelo
     for (size_t i = 0; i < test_data.size(); i++) {
         auto response = mlp.predict(test_data[i].input);
         predictions.push_back(response);
@@ -112,7 +115,7 @@ int main() {
                       << " | Predicao: " << letra_predita << std::endl;
         }
     }
-
+    // Medidas de acurácia e erro final
     float acuracia = (float)acertos / test_data.size() * 100.0f;
     std::cout << "\nRESUMO:" << std::endl;
     std::cout << "Acertos: " << acertos << " de " << test_data.size()
@@ -120,6 +123,7 @@ int main() {
     std::cout << "Acuracia: " << acuracia << "%" << std::endl;
 
     float erro_final_treino = result.train_losses.empty() ? 0.0f : result.train_losses.back();
+    // Exporta os resultados
     exportHyperparameters(
         output_dir + "/hiperparametros.txt",
         input_size, output_size, hidden_sizes,

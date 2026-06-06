@@ -11,7 +11,8 @@ typedef std::vector<std::vector<float>> Matrix;
 // uma rede neural
 enum ActivationFunctionType {
     ReLu,
-    Sigmoid,
+    SigmoidBipolar,
+    SigmoidStandard,
 };
 
 // Layer representa uma Camada dentro da rede neural, com seus pesos, viéses e
@@ -85,9 +86,10 @@ class MLPNetwork {
     WeightSnapshot captureWeights() const;
 
   public:
-    MLPNetwork(
-        int input_size, int output_size, std::vector<int> hidden_layer_sizes,
-        ActivationFunctionType activation_type = ActivationFunctionType::ReLu);
+    MLPNetwork(int input_size, int output_size,
+               std::vector<int> hidden_layer_sizes,
+               ActivationFunctionType activation_type =
+                   ActivationFunctionType::SigmoidStandard);
 
     // predict realiza a predição da rede para um dado de entrada
     std::vector<float> predict(const std::vector<float> &input);
@@ -103,9 +105,13 @@ class MLPNetwork {
                       int epochs, float threshold, float learning_rate,
                       int patience = 10);
 
+    // getInitialWeights retorna uma snapshot dos pesos e biases da rede
     const WeightSnapshot &getInitialWeights() const;
 
+    // getFinalWeights retorna uma snapshot dos pesos e biases da rede após o
+    // treinamento
     WeightSnapshot getFinalWeights() const;
 
+    // getNumLayers retorna o número de camadas da rede
     int getNumLayers() const;
 };
