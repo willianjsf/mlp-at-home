@@ -69,7 +69,7 @@ def plotar_matriz_confusao(matriz, num_classes, labels):
 
     fig.tight_layout()
     os.makedirs(GRAFICOS_DIR, exist_ok=True)
-    caminho = GRAFICOS_DIR / "grafico_7_matriz_confusao.png"
+    caminho = GRAFICOS_DIR / "grafico_8_matriz_confusao.png"
     plt.savefig(caminho, dpi=150, bbox_inches="tight")
     print(f"  → Matriz de Confusão salva em: {caminho}")
     plt.close()

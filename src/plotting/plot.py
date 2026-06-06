@@ -411,7 +411,61 @@ def grafico_early_stopping():
     salvar("grafico_6_variacoes_autorais.png")
     plt.close()
 
+def grafico_convergencia_todos():
+    """
+    Grade 3×3 com um subplot por experimento (exps 1–9).
+    Cada subplot exibe as curvas de treino (azul sólido) e validação
+    (laranja tracejado), mostrando que ambas convergem juntas nos
+    experimentos normais.
+    """
+    print("\n[Gráfico 7] Convergência treino/validação — todos os experimentos (1–9)")
 
+    todos_ids = list(ACURACIAS.keys())  # [1, 2, ..., 9]
+    cols = 3
+    rows = (len(todos_ids) + cols - 1) // cols  # 3 linhas
+
+    fig, axes = plt.subplots(rows, cols,
+                             figsize=(cols * 5, rows * 3.8),
+                             squeeze=False)
+
+    for ax_idx, exp_id in enumerate(todos_ids):
+        r, c = divmod(ax_idx, cols)
+        ax   = axes[r][c]
+
+        df = carregar_csv(exp_id)
+        if df is None:
+            ax.set_visible(False)
+            continue
+
+        col_t = col_treino(df)
+        ax.plot(df["epoca"], df[col_t],
+                color="#1f77b4", linewidth=1.3, label="Treino")
+
+        if tem_validacao(df):
+            ax.plot(df["epoca"], df[COL_VAL_NOVO],
+                    color="#ff7f0e", linewidth=1.3, linestyle="--", label="Validação")
+
+        acuracia = ACURACIAS.get(exp_id)
+        titulo   = f"Exp {exp_id} — {DESCRICOES.get(exp_id, '')}"
+        if acuracia is not None:
+            titulo += f"\nAcurácia: {acuracia:.2f}%"
+        ax.set_title(titulo, fontsize=9)
+        ax.set_xlabel("Época", fontsize=8)
+        ax.set_ylabel("MSE", fontsize=8)
+        ax.legend(fontsize=7)
+        ax.grid(True)
+        ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.4f"))
+
+    # Oculta subplots vazios na última linha (se houver)
+    for ax_idx in range(len(todos_ids), rows * cols):
+        r, c = divmod(ax_idx, cols)
+        axes[r][c].set_visible(False)
+
+    fig.suptitle("Convergência Treino e Validação — Experimentos 1 a 9",
+                 fontsize=13, y=1.01)
+    fig.tight_layout()
+    salvar("grafico_7_convergencia_todos.png")
+    plt.close()
 
 # Execução
 if __name__ == "__main__":
@@ -427,6 +481,7 @@ if __name__ == "__main__":
     grafico_epocas()
     grafico_acuracias()
     grafico_early_stopping()
+    grafico_convergencia_todos()
 
     arquivos = sorted(os.listdir(GRAFICOS_DIR))
     print(f"\nPronto! {len(arquivos)} gráficos salvos em: {GRAFICOS_DIR}")
